@@ -42,10 +42,11 @@ class neuralNetwork:
 
         whoAdjustment = np.dot((outputError * finalOutputs * (1-finalOutputs)),
                                np.transpose(hiddenOutputs))
-        self.who += self.lr * whoAdjustment
+        self.w_h_o += self.lr * whoAdjustment
 
         wihAdjustment = np.dot((hiddenError * hiddenOutputs * (1-hiddenOutputs)),
                                np.transpose(inputs))
+        self.w_i_h += self.lr * wihAdjustment
 
     def query(self, inputList):
         inputs = np.array(inputList, ndmin=2).T

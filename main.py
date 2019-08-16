@@ -1,46 +1,43 @@
 import scipy.io
-import numpy
+import numpy as np
 from collections import Counter
-
 from neuralNetwork import neuralNetwork
 
-mat = scipy.io.loadmat('data.mat')
 
-# print all keys
-# print(mat.keys())
+def readData():
+    # Read raw data
+    mat = scipy.io.loadmat('data.mat')
+    consts = mat.get('consts')[0][0]
 
-mixout = mat.get('mixout')[0]  # len 2858
+    # Extract useful data
+    data = mat.get('mixout').ravel()
+    rawLabels = consts[3].ravel()
+    labelIndexes = consts[4].ravel()
 
-consts = mat.get('consts')[0][0]
-# print(consts.shape)
-# print(consts.size)
-# print(consts)
+    # Map label index to character label
+    labels = list(map(lambda i: rawLabels[i - 1][0], labelIndexes))
 
-indexes = [123, 122, 543, 541, 256, 909, 111]
+    return (labels, data)
 
-keys = consts[3].ravel()
-labels = consts[4].ravel()
 
-# for mixoutChar in mixout:
-#     fst = len(mixoutChar[0]) == len(mixoutChar[1])
-#     snd = len(mixoutChar[1]) == len(mixoutChar[2])
-#     cond = fst and snd
-#     if (not cond):
-#         print('aaaaaaaaaaaaaaaaa')
-
-# print(len(consts[4][0]))
-# for x in consts:
-#     print(x)
+# Returns max length of every points in data
+def getMaxLen(labeledData):
+    return max(list(map(lambda point: len(point[0]), labeledData)))
 
 
 def main():
-    input_nodes = 3
-    hidden_nodes = 3
-    output_nodes = 3
+    (labels, rawData) = readData()
 
-    learning_rate = 0.3
+    maxPointLen = getMaxLen(rawData)
 
-    n = neuralNetwork(3, 3, 3, 0.3)
+    data = []
+    for i in range(len(rawData)):
+        for j in range(len(rawData[0])):
+            data.append([])
+            zerosLen = maxPointLen - len(rawData[i][j])
+            data[i].append(np.pad(rawData[i][j], (0, zerosLen), 'constant'))
+
+    labeledData = zip(labels, data)
 
 
 if __name__ == "__main__":
