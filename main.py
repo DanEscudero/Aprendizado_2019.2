@@ -25,19 +25,21 @@ def getMaxLen(labeledData):
     return max(list(map(lambda point: len(point[0]), labeledData)))
 
 
-def main():
-    (labels, rawData) = readData()
-
-    maxPointLen = getMaxLen(rawData)
-
+def fillWith0(maxLen, rawData):
     data = []
     for i in range(len(rawData)):
         for j in range(len(rawData[0])):
             data.append([])
-            zerosLen = maxPointLen - len(rawData[i][j])
+            zerosLen = maxLen - len(rawData[i][j])
             data[i].append(np.pad(rawData[i][j], (0, zerosLen), 'constant'))
 
-    labeledData = zip(labels, data)
+    return data
+
+
+def main():
+    (labels, rawData) = readData()
+    data = fillWith0(getMaxLen(rawData), rawData)
+    labeledData = list(zip(labels, data))
 
 
 if __name__ == "__main__":
