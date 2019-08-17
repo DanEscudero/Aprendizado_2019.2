@@ -1,9 +1,10 @@
+import sys
+import random
 import scipy.io
+import operator
 import numpy as np
 from collections import Counter
 from neuralNetwork import neuralNetwork
-import random
-import operator
 
 
 def readData():
@@ -51,9 +52,6 @@ def trainModel(model, epochs, trainingData, dictLabels):
             targets = np.zeros(len(dictLabels)) + 0.01
             targets[dictLabels.get(label)] = 1
             model.train(data, targets)
-
-            # Advance progress marker
-            trainingProgress += trainingStep
             pass
         pass
 
@@ -76,8 +74,8 @@ def testModel(model, testingData, labels):
     return (correctGuesses, accuracy)
 
 
-def main():
-    # Get raw data and labels from external file
+def getSplitData(ratio):
+     # Get raw data and labels from external file
     (labels, rawData) = readData()
 
     # Get data filled with 0's, as samples do not have all the same dimension
@@ -91,14 +89,20 @@ def main():
     random.shuffle(labeledData)
 
     # Split data into training and testing
-    testRatio = 0.15
-    partition = round(testRatio * len(labeledData))
+    partition = round(ratio * len(labeledData))
 
     testingData = labeledData[:partition]
     trainingData = labeledData[partition:]
+    return (testingData, trainingData, labeledData)
+
+
+def main():
+    # As there are 2.8k examples, 15% of them results in ~400 examples for testing
+    testRatio = 0.15
+    (testingData, trainingData, allData) = getSplitData(testRatio)
 
     # Get counts of labels, to make separation between train and test data easier
-    counts = Counter(label for (label, data) in labeledData)
+    counts = Counter(label for (label, data) in allData)
 
     # Keep in hand all avaliable keys sorted lexicographically
     avaliableKeys = np.unique(list(counts.elements()))
@@ -114,7 +118,7 @@ def main():
 
     # Define network shape and hyperparameters
     lr = 0.15
-    inputNodes = len(labeledData[0][1])
+    inputNodes = len(allData[0][1])
     hiddenNodes = 100
     outputNodes = len(avaliableKeys)
     model = neuralNetwork(inputNodes, hiddenNodes, outputNodes, lr)
@@ -131,5 +135,33 @@ def main():
     print('Accuracy:', 100 * round(accuracy, 2), '%')
 
 
+def chunks(l, nChunks):
+    nChunks = max(1, nChunks)
+    return list(l[i:i+nChunks] for i in range(0, len(l), nChunks))
+
+
+def crossValidateEpochs():
+    nChunks = 10
+    testRatio = 0.15
+    (testingData, trainingData, labeledData) = getSplitData(testRatio)
+    trainDataChunks = chunks(testingData, nChunks)
+
+    epochsOptions = list(range(1, nChunks + 1))
+
+    # TODO cross validation for number of epochs
+    for epochs in epochsOptions:
+        for i in range(nChunks):
+            # train is all chunks except the one with index i
+            # test is the chunk whose index is i
+            # resetModel
+            # trainModel
+            # testModel
+            # plot (epochs, accuracy)
+            # if accuracy > bestAccuracy: best epochs = epochs
+            pass
+        pass
+
+
 if __name__ == "__main__":
+    # crossValidateEpochs()
     main()
