@@ -44,6 +44,55 @@ def formatData(maxLen, rawData):
     return flatData
 
 
+def logTrain(progress):
+    print('Training ', 100 * progress, '% done.')
+
+
+def trainModel(model, epochs, trainingData, dictLabels):
+    # Initialize parameters to log training progress
+    trainingProgress = 0
+    trainingStep = 1 / (epochs * len(trainingData))
+    currentMarkerIndex = 0
+    progressMarkers = [0.25, 0.5, 0.75, 0.9]
+
+    print('Start training...')
+    for epoch in range(epochs):
+        for (label, data) in trainingData:
+            # Create targets: all values are 0.01, except the correct one, which is 1
+            targets = np.zeros(len(dictLabels)) + 0.01
+            targets[dictLabels.get(label)] = 1
+            model.train(data, targets)
+
+            # Advance progress marker
+            trainingProgress += trainingStep
+
+            # Log training progress
+            if (currentMarkerIndex < len(progressMarkers) and trainingProgress >= progressMarkers[currentMarkerIndex]):
+                logTrain(progressMarkers[currentMarkerIndex])
+                currentMarkerIndex = currentMarkerIndex + 1
+            pass
+        pass
+    print('Training done')
+
+
+def testModel(model, testingData, labels):
+    correctGuesses = 0
+    for (label, data) in testingData:
+        # Query returns an array of probabilities, where 0th is 'a', 1st is 'b'...
+        guesses = model.query(data)
+
+        index = np.argmax(guesses)
+        guess = labels[index]
+
+        # If label matches correct one, sum to correctGuesses
+        if (guess == label):
+            correctGuesses = correctGuesses + 1
+    pass
+
+    accuracy = correctGuesses / len(testingData)
+    return (correctGuesses, accuracy)
+
+
 def main():
     # Get raw data and labels from external file
     (labels, rawData) = readData()
@@ -67,19 +116,33 @@ def main():
     # Get counts of labels, to make separation between train and test data easier
     counts = Counter(label for (label, data) in labeledData)
 
-    # Keep in hand all avaliable keys might be useful as well
+    # Keep in hand all avaliable keys sorted lexicographically
     avaliableKeys = np.unique(list(counts.elements()))
     avaliableKeys.sort()
 
-    # Define network shape
+    # Associate keys to indexes
+    indexedKeys = []
+    for i in range(len(avaliableKeys)):
+        char = avaliableKeys[i]
+        indexedKeys.append((char, i))
+
+    dictLabels = dict(indexedKeys)
+
+    # Define network shape and hyperparameters
+    lr = 0.15
     inputNodes = len(labeledData[0][1])
     hiddenNodes = 100
     outputNodes = len(avaliableKeys)
-    lr = 0.15
     model = neuralNetwork(inputNodes, hiddenNodes, outputNodes, lr)
 
-    firstTest = testingData[0][1]
-    q = model.query(firstTest)
+    epochs = 1
+
+    # Train model
+    trainModel(model, epochs, trainingData, dictLabels)
+
+    # Test model
+    (correctGuesses, accuracy) = testModel(model, testingData, avaliableKeys)
+    print(accuracy)
 
 
 if __name__ == "__main__":

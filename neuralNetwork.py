@@ -57,6 +57,6 @@ class neuralNetwork:
 
         # Calculate data past output layer
         finalInputs = np.dot(self.w_h_o, hiddenOutputs)
-        finalOutputs = self.activation(hiddenOutputs)
+        finalOutputs = self.activation(finalInputs)
 
         return finalOutputs
