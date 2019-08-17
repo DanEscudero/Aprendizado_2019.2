@@ -44,10 +44,6 @@ def formatData(maxLen, rawData):
     return flatData
 
 
-def logTrain(progress):
-    print('Training ', 100 * progress, '% done.')
-
-
 def trainModel(model, epochs, trainingData, dictLabels):
     # Initialize parameters to log training progress
     trainingProgress = 0
@@ -55,7 +51,6 @@ def trainModel(model, epochs, trainingData, dictLabels):
     currentMarkerIndex = 0
     progressMarkers = [0.25, 0.5, 0.75, 0.9]
 
-    print('Start training...')
     for epoch in range(epochs):
         for (label, data) in trainingData:
             # Create targets: all values are 0.01, except the correct one, which is 1
@@ -68,11 +63,9 @@ def trainModel(model, epochs, trainingData, dictLabels):
 
             # Log training progress
             if (currentMarkerIndex < len(progressMarkers) and trainingProgress >= progressMarkers[currentMarkerIndex]):
-                logTrain(progressMarkers[currentMarkerIndex])
                 currentMarkerIndex = currentMarkerIndex + 1
             pass
         pass
-    print('Training done')
 
 
 def testModel(model, testingData, labels):
@@ -142,7 +135,9 @@ def main():
 
     # Test model
     (correctGuesses, accuracy) = testModel(model, testingData, avaliableKeys)
-    print(accuracy)
+
+    print('Model got', correctGuesses, 'out of', len(testingData))
+    print('Accuracy:', 100 * round(accuracy, 2), '%')
 
 
 if __name__ == "__main__":
