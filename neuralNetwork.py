@@ -4,24 +4,30 @@ import numpy as np
 
 class neuralNetwork:
     def __init__(self, iNodes, hNodes, oNodes, lr):
-                # Number of nodes
+        # Number of nodes
         self.inputNodes = iNodes
         self.hiddenNodes = hNodes
         self.outputNodes = oNodes
 
-        # Activation function is the sigmoid function
+        # Activation function (sigmoid function)
         self.activation = lambda x: scipy.special.expit(x)
 
         # Learning rate
         self.lr = lr
 
+        self.reset()
+
+        pass
+
+    def reset(self):
         # Initialize weights with random weights in range (-0.5 to 0.5) following normal distribution
         # Weights from input to hidden layer
-        self.w_i_h = np.random.normal(0.0, pow(iNodes, -0.5), (hNodes, iNodes))
+        self.w_i_h = np.random.normal(
+            0.0, pow(self.inputNodes, -0.5), (self.hiddenNodes, self.inputNodes))
 
         # Weights from hidden to output layer
-        self.w_h_o = np.random.normal(0.0, pow(hNodes, -0.5), (oNodes, hNodes))
-
+        self.w_h_o = np.random.normal(
+            0.0, pow(self.hiddenNodes, -0.5), (self.outputNodes, self.hiddenNodes))
         pass
 
     def train(self, inputsList, targetsList):

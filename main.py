@@ -45,12 +45,6 @@ def formatData(maxLen, rawData):
 
 
 def trainModel(model, epochs, trainingData, dictLabels):
-    # Initialize parameters to log training progress
-    trainingProgress = 0
-    trainingStep = 1 / (epochs * len(trainingData))
-    currentMarkerIndex = 0
-    progressMarkers = [0.25, 0.5, 0.75, 0.9]
-
     for epoch in range(epochs):
         for (label, data) in trainingData:
             # Create targets: all values are 0.01, except the correct one, which is 1
@@ -60,10 +54,6 @@ def trainModel(model, epochs, trainingData, dictLabels):
 
             # Advance progress marker
             trainingProgress += trainingStep
-
-            # Log training progress
-            if (currentMarkerIndex < len(progressMarkers) and trainingProgress >= progressMarkers[currentMarkerIndex]):
-                currentMarkerIndex = currentMarkerIndex + 1
             pass
         pass
 
@@ -100,6 +90,7 @@ def main():
     # To assure uniform distribution in both train and test data, data will be shuffled
     random.shuffle(labeledData)
 
+    # Split data into training and testing
     testRatio = 0.15
     partition = round(testRatio * len(labeledData))
 
