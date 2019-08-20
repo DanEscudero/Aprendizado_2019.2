@@ -1,8 +1,10 @@
 import sys
+import math
 import random
 import scipy.io
 import operator
 import numpy as np
+import matplotlib.pyplot as plt
 from collections import Counter
 from neuralNetwork import neuralNetwork
 
@@ -74,6 +76,36 @@ def testModel(model, testingData, labels):
     return (correctGuesses, accuracy)
 
 
+# Returns the amount of unique labels in an array of tuples (label, data)
+# Has high complexity and could be slow for too large arrays
+def amountOfLabels(data):
+    counts = Counter(label for (label, data) in data)
+    return len(np.unique(list(counts.elements())))
+
+
+def partitionData(ratio, allData):
+    # Get total amount of labels, in order to check if training data has all the labels in it
+    totalLabels = amountOfLabels(allData)
+
+    partitionIndex = round(ratio * len(allData))
+
+    testingData = allData[:partitionIndex]
+    trainingData = allData[partitionIndex:]
+
+    # Array is shuffled again until both testing and training data has all the labels
+    reshuffle = (amountOfLabels(testingData) != totalLabels) or (
+        amountOfLabels(trainingData) != totalLabels)
+    while (reshuffle):
+        random.shuffle(allData)
+        testingData = allData[:partitionIndex]
+        trainingData = allData[partitionIndex:]
+
+        reshuffle = (amountOfLabels(testingData) != totalLabels) or (
+            amountOfLabels(trainingData) != totalLabels)
+
+    return (testingData, trainingData, allData)
+
+
 def getSplitData(ratio):
      # Get raw data and labels from external file
     (labels, rawData) = readData()
@@ -82,18 +114,22 @@ def getSplitData(ratio):
     data = formatData(getMaxLen(rawData), rawData)
 
     # Zips data with labels
-    labeledData = list(zip(labels, data))
+    allData = list(zip(labels, data))
 
     # This data set is split in 2 parts, both sorted from a-z
     # To assure uniform distribution in both train and test data, data will be shuffled
-    random.shuffle(labeledData)
+    random.shuffle(allData)
 
     # Split data into training and testing
-    partition = round(ratio * len(labeledData))
+    return partitionData(ratio, allData)
 
-    testingData = labeledData[:partition]
-    trainingData = labeledData[partition:]
-    return (testingData, trainingData, labeledData)
+
+def setupModel(allData):
+    lr = 0.15
+    inputNodes = len(allData[0][1])
+    hiddenNodes = 100
+    outputNodes = amountOfLabels(allData)
+    return neuralNetwork(inputNodes, hiddenNodes, outputNodes, lr)
 
 
 def main():
@@ -108,7 +144,7 @@ def main():
     avaliableKeys = np.unique(list(counts.elements()))
     avaliableKeys.sort()
 
-    # Associate keys to indexes
+    # Associate keys to indexes in a dictionary in the form: { a: 0, b: 1, ... }
     indexedKeys = []
     for i in range(len(avaliableKeys)):
         char = avaliableKeys[i]
@@ -116,14 +152,10 @@ def main():
 
     dictLabels = dict(indexedKeys)
 
-    # Define network shape and hyperparameters
-    lr = 0.15
-    inputNodes = len(allData[0][1])
-    hiddenNodes = 100
-    outputNodes = len(avaliableKeys)
-    model = neuralNetwork(inputNodes, hiddenNodes, outputNodes, lr)
+    # Create model
+    model = setupModel(allData)
 
-    epochs = 1
+    epochs = 35
 
     # Train model
     trainModel(model, epochs, trainingData, dictLabels)
@@ -131,37 +163,85 @@ def main():
     # Test model
     (correctGuesses, accuracy) = testModel(model, testingData, avaliableKeys)
 
-    print('Model got', correctGuesses, 'out of', len(testingData))
-    print('Accuracy:', 100 * round(accuracy, 2), '%')
+    print('Numero de iteracoes sobre os dados de treino:', epochs)
+    print('Modelo acertou', correctGuesses, 'exemplos de', len(testingData))
+    print('Acurácia:', accuracy)
 
 
 def chunks(l, nChunks):
-    nChunks = max(1, nChunks)
-    return list(l[i:i+nChunks] for i in range(0, len(l), nChunks))
+    chunkSize = math.ceil(len(l) / nChunks)
+    return list(l[i:i+chunkSize] for i in range(0, len(l), chunkSize))
 
 
 def crossValidateEpochs():
     nChunks = 10
     testRatio = 0.15
-    (testingData, trainingData, labeledData) = getSplitData(testRatio)
+    (testingData, trainingData, allData) = getSplitData(testRatio)
     trainDataChunks = chunks(testingData, nChunks)
 
-    epochsOptions = list(range(1, nChunks + 1))
+    counts = Counter(label for (label, data) in allData)
 
-    # TODO cross validation for number of epochs
-    for epochs in epochsOptions:
-        for i in range(nChunks):
-            # train is all chunks except the one with index i
-            # test is the chunk whose index is i
-            # resetModel
-            # trainModel
-            # testModel
-            # plot (epochs, accuracy)
-            # if accuracy > bestAccuracy: best epochs = epochs
-            pass
-        pass
+    avaliableKeys = np.unique(list(counts.elements()))
+    avaliableKeys.sort()
+
+    indexedKeys = []
+    for i in range(len(avaliableKeys)):
+        char = avaliableKeys[i]
+        indexedKeys.append((char, i))
+
+    dictLabels = dict(indexedKeys)
+
+    model = setupModel(allData)
+
+    epochsOptions = list(map(lambda x: (x + 1), range(nChunks)))
+    print(epochsOptions)
+
+    bestEpochs = 0
+    bestAccuracy = 0
+    accuracies = []
+
+    for i in range(len(epochsOptions)):
+        epochs = epochsOptions[i]
+        currentTestingData = []
+        currentTrainingData = []
+        for j in range(nChunks):
+            if (i != j):
+                currentTrainingData.extend(trainDataChunks[j - 1])
+            else:
+                currentTestingData.extend(trainDataChunks[j - 1])
+
+        # Reset model, which might be trained from last round
+        model.reset()
+
+        # train model with current number of epochs
+        trainModel(model, epochs, currentTrainingData, dictLabels)
+
+        # test model with the split of data that wasn't used for training
+        (_, accuracy) = testModel(model, currentTestingData, avaliableKeys)
+
+        print(epochs, accuracy)
+
+        accuracies.append(accuracy)
+
+        if (accuracy > bestAccuracy):
+            bestEpochs = epochs
+
+    # Constrain graph axis
+    plt.xlim(0, max(epochsOptions))
+    plt.ylim(0, 1.1)
+
+    plt.title('Iterações sobres os dados vs. Acurácia do modelo')
+    plt.xlabel('Quantidade de iterações pelos dados de treino')
+    plt.ylabel('Acurácia do modelo')
+
+    # Plot epochs and accuracies
+    plt.plot(epochsOptions, accuracies)
+
+    plt.show()
 
 
 if __name__ == "__main__":
-    # crossValidateEpochs()
-    main()
+    if (len(sys.argv) > 1 and sys.argv[1] == 'crossValidate'):
+        crossValidateEpochs()
+    else:
+        main()
