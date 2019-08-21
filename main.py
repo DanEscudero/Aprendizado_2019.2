@@ -177,7 +177,7 @@ def crossValidateEpochs():
     nChunks = 10
     testRatio = 0.15
     (testingData, trainingData, allData) = getSplitData(testRatio)
-    trainDataChunks = chunks(testingData, nChunks)
+    trainDataChunks = chunks(trainingData, nChunks)
 
     counts = Counter(label for (label, data) in allData)
 
@@ -193,7 +193,7 @@ def crossValidateEpochs():
 
     model = setupModel(allData)
 
-    epochsOptions = list(map(lambda x: (x + 1), range(nChunks)))
+    epochsOptions = list(map(lambda x: 5 * (x + 1), range(nChunks)))
     print(epochsOptions)
 
     bestEpochs = 0
@@ -225,6 +225,7 @@ def crossValidateEpochs():
 
         if (accuracy > bestAccuracy):
             bestEpochs = epochs
+            bestAccuracy = accuracy
 
     # Constrain graph axis
     plt.xlim(0, max(epochsOptions))
@@ -236,6 +237,13 @@ def crossValidateEpochs():
 
     # Plot epochs and accuracies
     plt.plot(epochsOptions, accuracies)
+
+    print('========')
+    print('Melhor numero de iteracoes:', bestEpochs)
+    model.reset()
+    trainModel(model, bestEpochs, trainingData, dictLabels)
+    (_, accuracy) = testModel(model, testingData, avaliableKeys)
+    print('Acurácia com o melhor numero de iteracoes:', accuracy)
 
     plt.show()
 
